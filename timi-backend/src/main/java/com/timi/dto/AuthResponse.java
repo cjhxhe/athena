@@ -13,4 +13,7 @@ public class AuthResponse {
     private String token;
     private String message;
     private boolean success;
+    private Long userId;
+    private String accountId;
+    private String role; // ADMIN / APP_USER
 }

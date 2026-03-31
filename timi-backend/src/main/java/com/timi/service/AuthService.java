@@ -105,6 +105,9 @@ public class AuthService {
                 .success(true)
                 .token(token)
                 .message("登录成功")
+                .userId(user.getId())
+                .accountId(String.valueOf(user.getAccountId()))
+                .role("ADMIN")
                 .build();
     }
 }
