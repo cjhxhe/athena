@@ -5,6 +5,8 @@ import com.timi.entity.Favorite;
 import com.timi.repository.FavoriteRepository;
 import com.timi.service.AppUserService;
 import com.timi.service.ChatService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +25,7 @@ import java.util.Map;
 @RequestMapping("/api/c")
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"*"})
+@Tag(name = "APP用户 API", description = "APP用户接口")
 public class AppUserController {
 
     private final AppUserService appUserService;
@@ -31,6 +34,7 @@ public class AppUserController {
 
     // ============ 注册/登录 ============
 
+    @Operation(summary = "用户注册", description = "用户通过提供注册信息进行注册")
     @PostMapping("/users/register")
     public ResponseEntity<AuthResponse> register(@RequestBody AppUserRegisterRequest request) {
         return ResponseEntity.ok(appUserService.register(request));
@@ -38,12 +42,14 @@ public class AppUserController {
 
     // ============ 用户信息 ============
 
+    @Operation(summary = "获取当前用户信息", description = "通过认证信息获取当前登录用户的详细信息")
     @GetMapping("/users/me")
     public ResponseEntity<AppUserDTO> getMyInfo(Authentication authentication) {
         Long userId = getUserId(authentication);
         return ResponseEntity.ok(appUserService.getMyInfo(userId));
     }
 
+    @Operation(summary = "更新当前用户信息", description = "更新当前登录用户的详细信息")
     @PutMapping("/users/me")
     public ResponseEntity<AppUserDTO> updateMyInfo(
             Authentication authentication,
@@ -54,6 +60,7 @@ public class AppUserController {
 
     // ============ 收藏管理 ============
 
+    @Operation(summary = "获取收藏列表", description = "分页获取当前用户的收藏列表")
     @GetMapping("/favorites")
     public ResponseEntity<Page<Favorite>> getFavorites(
             Authentication authentication,
@@ -64,6 +71,7 @@ public class AppUserController {
         return ResponseEntity.ok(favoriteRepository.findByAppUserId(userId, pageable));
     }
 
+    @Operation(summary = "添加收藏", description = "将指定的Profile添加到收藏列表")
     @PostMapping("/favorites/{profileId}")
     public ResponseEntity<Map<String, Object>> addFavorite(
             Authentication authentication,
@@ -77,6 +85,7 @@ public class AppUserController {
         return ResponseEntity.ok(Map.of("success", true, "message", "收藏成功"));
     }
 
+    @Operation(summary = "移除收藏", description = "从收藏列表中移除指定的Profile")
     @DeleteMapping("/favorites/{profileId}")
     public ResponseEntity<Map<String, Object>> removeFavorite(
             Authentication authentication,
@@ -88,12 +97,14 @@ public class AppUserController {
 
     // ============ 客服 ============
 
+    @Operation(summary = "获取或创建客服会话", description = "获取或创建当前用户的客服会话")
     @PostMapping("/chat/session")
     public ResponseEntity<ChatSessionDTO> getOrCreateSession(Authentication authentication) {
         Long userId = getUserId(authentication);
         return ResponseEntity.ok(chatService.getOrCreateUserSession(userId));
     }
 
+    @Operation(summary = "获取客服会话消息", description = "获取当前用户的客服会话消息")
     @GetMapping("/chat/session/messages")
     public ResponseEntity<List<ChatMessageDTO>> getMyMessages(Authentication authentication) {
         Long userId = getUserId(authentication);
@@ -101,6 +112,7 @@ public class AppUserController {
         return ResponseEntity.ok(chatService.getMessages(session.getId()));
     }
 
+    @Operation(summary = "发送客服消息", description = "发送消息到客服会话")
     @PostMapping("/chat/session/send")
     public ResponseEntity<ChatMessageDTO> sendMessage(
             Authentication authentication,
