@@ -7,6 +7,13 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+// 定义通用响应结构
+export interface ApiResponse<T> {
+  code: number;
+  data: T;
+  message: string;
+}
+
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -23,9 +30,23 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle 401
+// Response interceptor: extract data field and handle errors
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 提取后端包裹的 data
+    const res = response.data as ApiResponse<any>;
+    if (res && typeof res.code === 'number') {
+      if (res.code === 200) {
+        // 将 response.data 替换为实际业务数据，方便上层直接使用
+        response.data = res.data;
+        return response;
+      } else {
+        // 业务错误处理
+        return Promise.reject(new Error(res.message || 'Error'));
+      }
+    }
+    return response;
+  },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('adminToken');

@@ -2,6 +2,13 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+// 定义通用响应结构
+export interface ApiResponse<T> {
+  code: number;
+  data: T;
+  message: string;
+}
+
 // 创建 axios 实例
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -24,9 +31,23 @@ apiClient.interceptors.request.use(
   }
 );
 
-// 响应拦截器：处理错误
+// 响应拦截器：提取 data 字段并处理错误
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 提取后端包裹的 data
+    const res = response.data as ApiResponse<any>;
+    if (res && typeof res.code === 'number') {
+      if (res.code === 200) {
+        // 将 response.data 替换为实际业务数据，方便上层直接使用
+        response.data = res.data;
+        return response;
+      } else {
+        // 业务错误处理
+        return Promise.reject(new Error(res.message || 'Error'));
+      }
+    }
+    return response;
+  },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       // Token 过期或无效，清除并重定向到登录
