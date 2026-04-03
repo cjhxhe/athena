@@ -1,11 +1,11 @@
 package com.timi.controller;
 
 import com.timi.dto.DictionaryDTO;
+import com.timi.dto.Result;
 import com.timi.service.DictionaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,9 +25,9 @@ public class DictionaryController {
      */
     @Operation(summary = "获取字典项", description = "根据类型获取字典项列表")
     @GetMapping("/{type}")
-    public ResponseEntity<List<DictionaryDTO>> getDictionaryByType(@PathVariable String type) {
+    public Result<List<DictionaryDTO>> getDictionaryByType(@PathVariable String type) {
         List<DictionaryDTO> dictionaries = dictionaryService.getDictionaryByType(type);
-        return ResponseEntity.ok(dictionaries);
+        return Result.success(dictionaries);
     }
 
     /**
@@ -36,9 +36,9 @@ public class DictionaryController {
      */
     @Operation(summary = "获取城市列表", description = "根据省份ID获取城市列表")
     @GetMapping("/city/{provinceId}")
-    public ResponseEntity<List<DictionaryDTO>> getCitiesByProvince(@PathVariable Long provinceId) {
+    public Result<List<DictionaryDTO>> getCitiesByProvince(@PathVariable Long provinceId) {
         List<DictionaryDTO> cities = dictionaryService.getCitiesByProvince(provinceId);
-        return ResponseEntity.ok(cities);
+        return Result.success(cities);
     }
 
     /**
@@ -46,9 +46,9 @@ public class DictionaryController {
      */
     @Operation(summary = "创建字典项", description = "管理员创建新的字典项")
     @PostMapping
-    public ResponseEntity<DictionaryDTO> createDictionary(@RequestBody DictionaryDTO dto) {
+    public Result<DictionaryDTO> createDictionary(@RequestBody DictionaryDTO dto) {
         DictionaryDTO created = dictionaryService.createDictionary(dto);
-        return ResponseEntity.ok(created);
+        return Result.success(created);
     }
 
     /**
@@ -56,11 +56,11 @@ public class DictionaryController {
      */
     @Operation(summary = "更新字典项", description = "管理员更新指定的字典项")
     @PutMapping("/{id}")
-    public ResponseEntity<DictionaryDTO> updateDictionary(
+    public Result<DictionaryDTO> updateDictionary(
             @PathVariable Long id,
             @RequestBody DictionaryDTO dto) {
         DictionaryDTO updated = dictionaryService.updateDictionary(id, dto);
-        return ResponseEntity.ok(updated);
+        return Result.success(updated);
     }
 
     /**
@@ -68,8 +68,8 @@ public class DictionaryController {
      */
     @Operation(summary = "删除字典项", description = "管理员删除指定的字典项")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDictionary(@PathVariable Long id) {
+    public Result<Void> deleteDictionary(@PathVariable Long id) {
         dictionaryService.deleteDictionary(id);
-        return ResponseEntity.noContent().build();
+        return Result.success(null, "删除成功");
     }
 }

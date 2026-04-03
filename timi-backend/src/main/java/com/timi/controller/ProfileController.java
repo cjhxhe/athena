@@ -2,6 +2,7 @@ package com.timi.controller;
 
 import com.timi.dto.DistanceRequest;
 import com.timi.dto.ProfileDTO;
+import com.timi.dto.Result;
 import com.timi.service.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -9,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,7 +31,7 @@ public class ProfileController {
      */
     @Operation(summary = "获取用户资料列表", description = "分页获取用户资料列表，可按条件筛选")
     @GetMapping
-    public ResponseEntity<Page<ProfileDTO>> getProfiles(
+    public Result<Page<ProfileDTO>> getProfiles(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String city,
@@ -40,7 +40,7 @@ public class ProfileController {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<ProfileDTO> profiles = profileService.getAllProfiles(name, province, city, pageable);
-        return ResponseEntity.ok(profiles);
+        return Result.success(profiles);
     }
 
     /**
@@ -48,9 +48,9 @@ public class ProfileController {
      */
     @Operation(summary = "获取用户资料详情", description = "根据ID获取用户资料详情")
     @GetMapping("/{id}")
-    public ResponseEntity<ProfileDTO> getProfile(@PathVariable Long id) {
+    public Result<ProfileDTO> getProfile(@PathVariable Long id) {
         ProfileDTO profile = profileService.getProfileById(id);
-        return ResponseEntity.ok(profile);
+        return Result.success(profile);
     }
 
     /**
@@ -58,7 +58,7 @@ public class ProfileController {
      */
     @Operation(summary = "计算距离", description = "计算用户与指定资料的距离")
     @PostMapping("/{id}/distance")
-    public ResponseEntity<Map<String, Object>> calculateDistance(
+    public Result<Map<String, Object>> calculateDistance(
             @PathVariable Long id,
             @RequestBody DistanceRequest request) {
 
@@ -75,7 +75,7 @@ public class ProfileController {
         response.put("distance", String.format("%.2f", distance));
         response.put("unit", "km");
 
-        return ResponseEntity.ok(response);
+        return Result.success(response);
     }
 
     /**
@@ -83,14 +83,13 @@ public class ProfileController {
      */
     @Operation(summary = "上传图片", description = "上传用户资料图片")
     @PostMapping("/upload")
-    public ResponseEntity<Map<String, String>> uploadPhoto(@RequestParam("file") MultipartFile file) throws IOException {
+    public Result<Map<String, String>> uploadPhoto(@RequestParam("file") MultipartFile file) throws IOException {
         String photoPath = profileService.uploadPhoto(file);
         
         Map<String, String> response = new HashMap<>();
         response.put("photoPath", photoPath);
-        response.put("message", "图片上传成功");
         
-        return ResponseEntity.ok(response);
+        return Result.success(response, "图片上传成功");
     }
 
     /**
@@ -98,9 +97,9 @@ public class ProfileController {
      */
     @Operation(summary = "创建用户资料", description = "管理员创建新的用户资料")
     @PostMapping
-    public ResponseEntity<ProfileDTO> createProfile(@RequestBody ProfileDTO dto) {
+    public Result<ProfileDTO> createProfile(@RequestBody ProfileDTO dto) {
         ProfileDTO created = profileService.createProfile(dto);
-        return ResponseEntity.ok(created);
+        return Result.success(created);
     }
 
     /**
@@ -108,11 +107,11 @@ public class ProfileController {
      */
     @Operation(summary = "更新用户资料", description = "管理员更新指定的用户资料")
     @PutMapping("/{id}")
-    public ResponseEntity<ProfileDTO> updateProfile(
+    public Result<ProfileDTO> updateProfile(
             @PathVariable Long id,
             @RequestBody ProfileDTO dto) {
         ProfileDTO updated = profileService.updateProfile(id, dto);
-        return ResponseEntity.ok(updated);
+        return Result.success(updated);
     }
 
     /**
@@ -120,8 +119,8 @@ public class ProfileController {
      */
     @Operation(summary = "删除用户资料", description = "管理员删除指定的用户资料")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProfile(@PathVariable Long id) {
+    public Result<Void> deleteProfile(@PathVariable Long id) {
         profileService.deleteProfile(id);
-        return ResponseEntity.noContent().build();
+        return Result.success(null, "删除成功");
     }
 }

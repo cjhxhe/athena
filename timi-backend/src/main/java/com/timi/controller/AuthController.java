@@ -2,11 +2,11 @@ package com.timi.controller;
 
 import com.timi.dto.AuthRequest;
 import com.timi.dto.AuthResponse;
+import com.timi.dto.Result;
 import com.timi.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,9 +23,9 @@ public class AuthController {
      */
     @Operation(summary = "验证邀请码", description = "验证用户提供的邀请码是否有效")
     @PostMapping("/verify-code")
-    public ResponseEntity<AuthResponse> verifyCode(@RequestBody AuthRequest request) {
+    public Result<AuthResponse> verifyCode(@RequestBody AuthRequest request) {
         AuthResponse response = authService.verifyInviteCode(request.getCode());
-        return ResponseEntity.ok(response);
+        return Result.success(response);
     }
 
     /**
@@ -33,8 +33,8 @@ public class AuthController {
      */
     @Operation(summary = "管理员登录", description = "管理员通过用户名和密码登录")
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
+    public Result<AuthResponse> login(@RequestBody AuthRequest request) {
         AuthResponse response = authService.adminLogin(request.getUsername(), request.getPassword());
-        return ResponseEntity.ok(response);
+        return Result.success(response);
     }
 }
