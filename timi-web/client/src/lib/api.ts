@@ -76,6 +76,14 @@ export const authApi = {
 
 // ============ 列表 API ============
 
+export interface ProfileMedia {
+  id?: number;
+  url: string;
+  path: string;
+  type: 'IMAGE' | 'VIDEO';
+  sortOrder?: number;
+}
+
 export interface Profile {
   id: number;
   name: string;
@@ -95,6 +103,7 @@ export interface Profile {
   createdAt?: string;
   updatedAt?: string;
   distance?: number | string;
+  media?: ProfileMedia[]; // 新增多媒体资源列表
 }
 
 export interface ProfilesResponse {
@@ -153,7 +162,7 @@ export const profileApi = {
     apiClient.delete(`/api/profiles/${id}`),
 
   /**
-   * 上传图片
+   * 上传图片或视频
    */
   uploadPhoto: (file: File) => {
     const formData = new FormData();

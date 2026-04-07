@@ -87,3 +87,15 @@ CREATE INDEX IF NOT EXISTS idx_chat_session_agent ON chat_session(agent_id);
 CREATE INDEX IF NOT EXISTS idx_chat_session_status ON chat_session(status);
 CREATE INDEX IF NOT EXISTS idx_chat_message_session ON chat_message(session_id);
 CREATE INDEX IF NOT EXISTS idx_chat_message_created ON chat_message(created_at);
+
+-- 用户多媒体资源表
+CREATE TABLE IF NOT EXISTS `profile_media` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `profile_id` BIGINT NOT NULL,
+    `url` VARCHAR(512) NOT NULL,
+    `path` VARCHAR(512) NOT NULL,
+    `type` VARCHAR(20) NOT NULL COMMENT 'IMAGE or VIDEO',
+    `sort_order` INT DEFAULT 0,
+    `created_at` DATETIME NOT NULL,
+    FOREIGN KEY (profile_id) REFERENCES profile(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

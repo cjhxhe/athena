@@ -31,4 +31,5 @@ public class ProfileDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Double distance;  // For distance calculation
+    private List<ProfileMediaDTO> media; // 新增多媒体资源列表
 }

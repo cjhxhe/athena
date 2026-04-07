@@ -3,7 +3,10 @@ package com.timi.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.timi.dto.ProfileDTO;
+import com.timi.dto.ProfileMediaDTO;
 import com.timi.entity.Profile;
+import com.timi.entity.ProfileMedia;
+import com.timi.repository.ProfileMediaRepository;
 import com.timi.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,9 +14,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
+    private final ProfileMediaRepository profileMediaRepository;
     private final ObjectMapper objectMapper;
 
     @Value("${file.upload.dir:uploads/photos}")
@@ -74,7 +78,15 @@ public class ProfileService {
     public ProfileDTO getProfileById(Long id) {
         Profile profile = profileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Profile not found"));
-        return convertToDTO(profile);
+        ProfileDTO dto = convertToDTO(profile);
+        
+        // 加载多媒体资源
+        List<ProfileMedia> mediaList = profileMediaRepository.findByProfileIdOrderBySortOrderAscIdAsc(id);
+        dto.setMedia(mediaList.stream()
+                .map(this::convertMediaToDTO)
+                .collect(Collectors.toList()));
+        
+        return dto;
     }
 
     /**
@@ -87,8 +99,8 @@ public class ProfileService {
 
         // 验证文件类型
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new RuntimeException("只能上传图片文件");
+        if (contentType == null || (!contentType.startsWith("image/") && !contentType.startsWith("video/"))) {
+            throw new RuntimeException("只能上传图片或视频文件");
         }
 
         // 创建上传目录
@@ -99,7 +111,10 @@ public class ProfileService {
 
         // 生成唯一的文件名
         String originalFilename = file.getOriginalFilename();
-        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
         String filename = UUID.randomUUID().toString() + extension;
 
         // 保存文件
@@ -113,15 +128,26 @@ public class ProfileService {
     /**
      * 创建列表项
      */
+    @Transactional
     public ProfileDTO createProfile(ProfileDTO dto) {
         Profile profile = convertToEntity(dto);
         Profile saved = profileRepository.save(profile);
-        return convertToDTO(saved);
+        
+        // 保存多媒体资源
+        if (dto.getMedia() != null && !dto.getMedia().isEmpty()) {
+            List<ProfileMedia> mediaList = dto.getMedia().stream()
+                    .map(m -> convertMediaToEntity(m, saved.getId()))
+                    .collect(Collectors.toList());
+            profileMediaRepository.saveAll(mediaList);
+        }
+        
+        return getProfileById(saved.getId());
     }
 
     /**
      * 更新列表项
      */
+    @Transactional
     public ProfileDTO updateProfile(Long id, ProfileDTO dto) {
         Profile profile = profileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Profile not found"));
@@ -146,16 +172,27 @@ public class ProfileService {
             }
         }
         if (dto.getDescription() != null) profile.setDescription(dto.getDescription());
-        if (dto.getFeatured() != null) profile.setFeatured(dto.getFeatured());
 
-        Profile updated = profileRepository.save(profile);
-        return convertToDTO(updated);
+        profileRepository.save(profile);
+        
+        // 更新多媒体资源
+        if (dto.getMedia() != null) {
+            profileMediaRepository.deleteByProfileId(id);
+            List<ProfileMedia> mediaList = dto.getMedia().stream()
+                    .map(m -> convertMediaToEntity(m, id))
+                    .collect(Collectors.toList());
+            profileMediaRepository.saveAll(mediaList);
+        }
+
+        return getProfileById(id);
     }
 
     /**
      * 删除列表项
      */
+    @Transactional
     public void deleteProfile(Long id) {
+        profileMediaRepository.deleteByProfileId(id);
         profileRepository.deleteById(id);
     }
 
@@ -238,6 +275,26 @@ public class ProfileService {
                 .longitude(dto.getLongitude())
                 .services(servicesJson)
                 .description(dto.getDescription())
+                .build();
+    }
+
+    private ProfileMediaDTO convertMediaToDTO(ProfileMedia media) {
+        return ProfileMediaDTO.builder()
+                .id(media.getId())
+                .url(media.getUrl())
+                .path(media.getPath())
+                .type(media.getType())
+                .sortOrder(media.getSortOrder())
+                .build();
+    }
+
+    private ProfileMedia convertMediaToEntity(ProfileMediaDTO dto, Long profileId) {
+        return ProfileMedia.builder()
+                .profileId(profileId)
+                .url(dto.getUrl())
+                .path(dto.getPath())
+                .type(dto.getType())
+                .sortOrder(dto.getSortOrder())
                 .build();
     }
 }

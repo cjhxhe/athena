@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { profileApi, Profile } from '@/lib/api';
+import { profileApi, Profile, ProfileMedia } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { ArrowLeft, MapPin, Copy } from 'lucide-react';
+import { ArrowLeft, MapPin, Copy, PlayCircle } from 'lucide-react';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export default function DetailPage() {
   const [match, params] = useRoute('/detail/:id');
@@ -12,6 +14,7 @@ export default function DetailPage() {
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
   const [distance, setDistance] = useState<string | null>(null);
+  const [activeMedia, setActiveMedia] = useState<ProfileMedia | null>(null);
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -30,7 +33,20 @@ export default function DetailPage() {
     setLoading(true);
     try {
       const response = await profileApi.getProfile(id);
-      setProfile(response.data);
+      const data = response.data;
+      setProfile(data);
+      
+      // 设置默认展示的媒体
+      if (data.media && data.media.length > 0) {
+        setActiveMedia(data.media[0]);
+      } else if (data.photoUrl || data.photoPath) {
+        // 如果没有媒体列表，创建一个虚拟的媒体项展示首图
+        setActiveMedia({
+          url: data.photoUrl || '',
+          path: data.photoPath || '',
+          type: 'IMAGE'
+        });
+      }
     } catch (error) {
       console.error('获取详情失败:', error);
       toast.error('获取详情失败');
@@ -84,6 +100,12 @@ export default function DetailPage() {
     }
   };
 
+  const getMediaUrl = (media: ProfileMedia) => {
+    if (media.url) return media.url;
+    if (media.path) return `${API_BASE_URL}/${media.path}`;
+    return '';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -106,7 +128,7 @@ export default function DetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-10">
       {/* 顶部导航 */}
       <header className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
         <div className="container flex items-center h-16">
@@ -123,20 +145,61 @@ export default function DetailPage() {
 
       {/* 主内容 */}
       <main className="container py-6 max-w-2xl">
-        {/* 图片区域 */}
-        <div className="mb-6 rounded-xl overflow-hidden bg-muted h-96">
-          {profile.photoUrl ? (
-            <img
-              src={profile.photoUrl}
-              alt={profile.name}
-              className="w-full h-full object-cover"
-            />
+        {/* 媒体播放区域 */}
+        <div className="mb-4 rounded-xl overflow-hidden bg-black h-[500px] relative">
+          {activeMedia ? (
+            activeMedia.type === 'VIDEO' ? (
+              <video
+                src={getMediaUrl(activeMedia)}
+                controls
+                className="w-full h-full object-contain"
+                autoPlay
+              />
+            ) : (
+              <img
+                src={getMediaUrl(activeMedia)}
+                alt={profile.name}
+                className="w-full h-full object-contain"
+              />
+            )
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-              无图片
+              无媒体资源
             </div>
           )}
         </div>
+
+        {/* 媒体缩略图列表 */}
+        {profile.media && profile.media.length > 0 && (
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            {profile.media.map((media, idx) => (
+              <div
+                key={idx}
+                onClick={() => setActiveMedia(media)}
+                className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                  activeMedia === media ? 'border-primary' : 'border-transparent'
+                }`}
+              >
+                <div className="relative w-full h-full bg-muted">
+                  {media.type === 'VIDEO' ? (
+                    <>
+                      <video src={getMediaUrl(media)} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <PlayCircle className="w-8 h-8 text-white opacity-80" />
+                      </div>
+                    </>
+                  ) : (
+                    <img
+                      src={getMediaUrl(media)}
+                      alt={`media-${idx}`}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 信息卡片 */}
         <div className="space-y-4">
@@ -257,7 +320,7 @@ export default function DetailPage() {
               <h3 className="text-lg font-semibold text-foreground mb-3">
                 描述
               </h3>
-              <p className="text-foreground leading-relaxed">
+              <p className="text-foreground leading-relaxed whitespace-pre-wrap">
                 {profile.description}
               </p>
             </div>
@@ -265,7 +328,7 @@ export default function DetailPage() {
         </div>
 
         {/* 底部按钮 */}
-        <div className="mt-8 flex gap-3 pb-6">
+        <div className="mt-8 flex gap-3">
           <Button
             variant="outline"
             className="flex-1"
